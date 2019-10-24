@@ -42,8 +42,9 @@ private:
 
     QTimer *timer1 ;      //object to start and stop timer
     QString port1, port2;
-    int port_handler_left,port_handler_right;
-    int command;
+    int port_handler_left=0;
+    int port_handler_right=0;
+    int command=99;
 
     void checkSerial(int handler, int *command);
 
@@ -57,8 +58,8 @@ private:
     QPoint p1;
     QPoint p2;
     int barLeft, barRight;
-    void connectSerial(int *handler, QString *port1);
     void disconnectSerial(int handler);
+    void connectSerial(int *handler, QString port);
 };
 
 #endif // MAINWINDOW_H

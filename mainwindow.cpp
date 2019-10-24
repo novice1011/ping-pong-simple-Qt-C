@@ -25,7 +25,6 @@ MainWindow::MainWindow(QWidget *parent) :
     canvas2->fill(qRgb(70,160,126));
     canvas3->fill(qRgb(255,255,255));
 
-    qDebug()<<"Program debug"<< '\n';
 }
 
 MainWindow::~MainWindow()
@@ -38,13 +37,14 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::checkSerial(int handler, int *command){
-    if (handler<0)return;
+    if (handler<=0)return;
 
     char charbuff[1];
     std::string words="";
     bool startwordfound = 0;
     while(read(handler, charbuff, 1)>0){
 
+//        read(handler, charbuff, 1);
         if (charbuff[0] == '$'){
             startwordfound = 1;
             words="";
@@ -80,34 +80,53 @@ void MainWindow::timercallfunction(){
     qDebug()<<command;
 //    checkSerial(port_handler_right, &command);//doesnt work somehow
     moveBar(command, &barLeft, &barRight);
+    command = 99;
 }
 
 void MainWindow::on_lineEdit_returnPressed()
 {
-
-    connectSerial(&port_handler_left, &port1);
+    port1 = ui->lineEdit->text();
+    connectSerial(&port_handler_left, port1);
 
 }
 
 void MainWindow::on_lineEdit_2_returnPressed()
 {
-    connectSerial(&port_handler_right, &port2);
+    port2 = ui->lineEdit->text();
+    connectSerial(&port_handler_right, port2);
 }
 
-void MainWindow::connectSerial(int *handler, QString *port1){
-    *port1 = ui->lineEdit->text();
-    *handler = open(port1->toLocal8Bit(), O_RDWR|O_NOCTTY);
+void MainWindow::connectSerial(int *handler, QString port){
+
+    *handler = open(port.toLocal8Bit(), O_RDWR|O_NOCTTY);
     if (*handler < 0) {
         qDebug()<<"Serial Error "<<errno << '\n';
     }
     else {
-        qDebug()<<"connected to"; qDebug()<<port1->toLocal8Bit();
+        qDebug()<<"connected to"; qDebug()<<port.toLocal8Bit();
     }
+    //========= Serial Port Configuration =========//
+    //This will prevent from block reading (ICANON part is enough)
+    //setting
+    struct termios oldtio, newtio;
+    tcgetattr(*handler, &oldtio);
+    bzero(&newtio, sizeof(newtio));
+
+    newtio.c_cflag = B9600|CS8|CLOCAL|CREAD;
+    newtio.c_iflag = IGNPAR;
+    newtio.c_oflag = 0;
+    newtio.c_lflag |= ~(ICANON|ECHO|ECHOE);
+//    newtio.c_cc = VMIN(0)|VTIME(0);
+
+    tcflush(*handler, TCIFLUSH);
+    tcsetattr(*handler, TCSANOW, &newtio);
+    //========= Serial Port Configuration =========//
 //    while (tcflush(*handler,TCIOFLUSH)>0)sleep(2);
 }
 
 void MainWindow::disconnectSerial(int handler){
     ::close(handler); // :: mean global namespace, and close from unistd.h is in global namespace
+//    tcsetattr(fd, TCSANOW, &oldtio);
 }
 
 void MainWindow::paintEvent(QPaintEvent *)
