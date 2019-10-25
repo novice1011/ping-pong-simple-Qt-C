@@ -15,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent) :
     timer1 = new QTimer(this);
     timer1->start(10);
     connect(timer1,SIGNAL(timeout()), this, SLOT(timercallfunction()));
+    connect(timer1,SIGNAL(timeout()),this,SLOT(animation_refresh()));
 
     net.width = 5;
     net.height = field.width;
@@ -28,17 +29,24 @@ MainWindow::MainWindow(QWidget *parent) :
     Bar_Left.pos_x = net.width;
     Bar_Left.pos_y = field.center_y_pos()-Bar_Left.height/2;
 
-    Bar_Right.pos_x = field.width - 2*net.width;
+    Bar_Right.pos_x = field.width - 2*Bar_Right.width;
     Bar_Right.pos_y = field.center_y_pos()-Bar_Right.height/2;
-
-//    p1=QPoint(net.width,field.center_y);
-//    p2=QPoint(field.width-2*net.width , field.center_y);
 
     field_image = new QImage(field.width,field.height,QImage::Format_RGB32);
     field_image->fill(qRgb(0,128,0));
 
     net_image = new QImage(net.width,field.height,QImage::Format_RGB32);
     net_image->fill(qRgb(255,255,255));
+
+    ui->label_ball->setGeometry((int)ball.x,(int)ball.y,30,30);
+
+    ball.dir_deg=90;
+
+    scoreL = 0; scoreR = 0;
+
+    resetballposition(&ball,field);
+
+    resetscore();
 }
 
 MainWindow::~MainWindow()
@@ -159,9 +167,6 @@ void MainWindow::paintEvent(QPaintEvent *)
 
 void MainWindow::moveBar(int command, Square *barleft, Square *barright, Square *field){
 
-    Square templeft = *barleft;
-    Square tempright = *barright;
-
     switch (command) {
     case P1_RIGHT_DOWN:
         barright->pos_y = barright->pos_y+barspeed;
@@ -177,14 +182,118 @@ void MainWindow::moveBar(int command, Square *barleft, Square *barright, Square 
         break;
     }
 
-    if (barleft->pos_y >= (field->height -barleft->height )
-            || barleft->pos_y <= field->pos_y){
-        *barleft = templeft;
+    if (barleft->pos_y >= (field->height -barleft->height )){
+        barleft->pos_y = (field->height -barleft->height );
     }
-    if (barright->pos_y >= (field->height -barright->height )
-            || barright->pos_y <= field->pos_y){
-        *barright = tempright;
+    else if (barleft->pos_y <= field->pos_y) {
+        barleft->pos_y = field->pos_y;
+    }
+
+    if (barright->pos_y >= (field->height -barright->height )){
+        barright->pos_y = field->height -barright->height;
+    }
+    else if (barright->pos_y <= field->pos_y) {
+        barright->pos_y = field->pos_y;
     }
 
     update();
+}
+
+void MainWindow::updateballposition(Ball *b, Square field){
+
+    b->x = b->x + b->traj_x();
+    b->y = b->y + b->traj_y();
+
+    //bounce to ceiling from right
+    if (b->y<=field.pos_y && b->dir_deg<0){
+        b->dir_deg = -(180 + b->dir_deg);
+        b->y = field.pos_y;
+        //pos x need to calculate related to sampling
+    }
+    //bounce to floor from right
+    else if (b->y >= field.pos_y+field.height && b->dir_deg<0) {
+        b->dir_deg = -(180 + b->dir_deg);
+        b->y = field.height;
+        //pos x need to calculate related to sampling
+    }
+    //bounce to ceiling from left
+    if (b->y<=field.pos_y && b->dir_deg>0){
+        b->dir_deg = (180 - b->dir_deg);
+        b->y = field.pos_y+field.pos_y;
+        //pos x need to calculate related to sampling
+    }
+    //bounce to floor from left
+    else if (b->y >= field.pos_y+field.height && b->dir_deg>0) {
+        b->dir_deg = (180 - b->dir_deg);
+        b->y = field.pos_y+field.height;
+        //pos x need to calculate related to sampling
+    }
+}
+
+int MainWindow::scoreCheck(Ball *b, Square rightbar, Square leftbar){
+    //touch right border
+    if (b->x > rightbar.pos_x){
+        //on the bar
+        if (b->y > rightbar.pos_y && b->y < rightbar.pos_y+rightbar.height){
+            //change direction
+            float angle = mapbartodeg(rightbar,*b);
+            b->dir_deg = -angle;
+            b->speed = b->speed + 0.5;
+            return 0;
+        }
+        //not on the bar
+        else {
+            return 2; //score on the left
+        }
+    }
+    //touch left border
+    else if (b->x < leftbar.center_x_pos()) {
+        //on the bar
+        if (b->y > leftbar.pos_y && b->y < leftbar.pos_y+leftbar.height){
+            //change direction
+            float angle = mapbartodeg(leftbar,*b);
+            b->dir_deg = angle;
+            b->speed = b->speed + 0.5;
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    }
+}
+
+void MainWindow::animation_refresh(){
+    updateballposition(&ball,field);
+    int score = scoreCheck(&ball,Bar_Right,Bar_Left);
+    ui->label_ball->setGeometry((int)ball.x,(int)ball.y,10,10);
+    if (score==1){
+        scoreL++;
+        ui->label_scoreR->setText(QString::number(scoreL));
+        resetballposition(&ball,field);
+    }
+    else if (score==2) {
+        scoreR++;
+        ui->label_scoreL->setText(QString::number(scoreR));
+        resetballposition(&ball,field);
+    }
+}
+
+float MainWindow::mapbartodeg(Square bar, Ball ball){
+    float touch_pos = ball.y-bar.pos_y;
+    return  (touch_pos) * (180) / (bar.height);
+}
+
+void MainWindow::resetballposition(Ball *b, Square field){
+    b->x = field.center_x_pos();
+    b->y = field.center_y_pos();
+    srand (time(NULL));
+    b->dir_deg =  (float)((rand()%360)-180);
+    b->speed = 1;
+}
+
+void MainWindow::resetscore(){
+    scoreR = 0;
+    scoreL = 0;
+    ui->label_scoreL->setText(QString::number(0));
+    ui->label_scoreR->setText(QString::number(0));
 }
