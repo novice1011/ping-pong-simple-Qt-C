@@ -16,15 +16,29 @@ MainWindow::MainWindow(QWidget *parent) :
     timer1->start(10);
     connect(timer1,SIGNAL(timeout()), this, SLOT(timercallfunction()));
 
-    p1=QPoint(10,300);
-    p2=QPoint(1485,300);
-    canvas1 = new QImage(10,800,QImage::Format_RGB32);
-    canvas2 = new QImage(1501,800,QImage::Format_RGB32);
-    canvas3 = new QImage(1501,15,QImage::Format_RGB32);
-    canvas1->fill(qRgb(255,255,255));
-    canvas2->fill(qRgb(70,160,126));
-    canvas3->fill(qRgb(255,255,255));
+    net.width = 5;
+    net.height = field.width;
 
+    Bar_Left.width = 5;
+    Bar_Right.width = 5;
+
+    Bar_Left.height = 180;
+    Bar_Right.height = 180;
+
+    Bar_Left.pos_x = net.width;
+    Bar_Left.pos_y = field.center_y_pos()-Bar_Left.height/2;
+
+    Bar_Right.pos_x = field.width - 2*net.width;
+    Bar_Right.pos_y = field.center_y_pos()-Bar_Right.height/2;
+
+//    p1=QPoint(net.width,field.center_y);
+//    p2=QPoint(field.width-2*net.width , field.center_y);
+
+    field_image = new QImage(field.width,field.height,QImage::Format_RGB32);
+    field_image->fill(qRgb(0,128,0));
+
+    net_image = new QImage(net.width,field.height,QImage::Format_RGB32);
+    net_image->fill(qRgb(255,255,255));
 }
 
 MainWindow::~MainWindow()
@@ -49,8 +63,7 @@ void MainWindow::checkSerial(int handler, int *command){
             startwordfound = 1;
             words="";
         }
-        else if (charbuff[0]>=32 && startwordfound && charbuff[0] != '\n'){
-            //constrain only to printable char
+        else if (startwordfound && charbuff[0] != '\n'){
             words = words + charbuff[0];
         }
         else if (charbuff[0] == '\n' && words!="") {
@@ -77,9 +90,9 @@ void MainWindow::checkSerial(int handler, int *command){
 
 void MainWindow::timercallfunction(){
     checkSerial(port_handler_left, &command);
-    qDebug()<<command;
+//    qDebug()<<command;
 //    checkSerial(port_handler_right, &command);//doesnt work somehow
-    moveBar(command, &barLeft, &barRight);
+    moveBar(command, &Bar_Left, &Bar_Right, &field);
     command = 99;
 }
 
@@ -115,7 +128,7 @@ void MainWindow::connectSerial(int *handler, QString port){
     newtio.c_cflag = B9600|CS8|CLOCAL|CREAD;
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
-    newtio.c_lflag |= ~(ICANON|ECHO|ECHOE);
+    newtio.c_lflag |= ~(ICANON|ECHO|ECHOE); //constrain to only to printable char, and enable non blokcing read by default
 //    newtio.c_cc = VMIN(0)|VTIME(0);
 
     tcflush(*handler, TCIFLUSH);
@@ -132,35 +145,46 @@ void MainWindow::disconnectSerial(int handler){
 void MainWindow::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
-    painter.setPen(QPen(Qt::blue,5));
-    painter.drawImage(QPoint(0,0), *canvas2);
-    painter.drawImage(QPoint(755,0), *canvas1);
-    painter.drawImage(QPoint(0,400), *canvas3);
-    painter.drawLine(p1.x(),p1.y(),p1.x(),p1.y()+180);
+    painter.drawImage(QPoint(field.pos_x,field.pos_y), *field_image);
+    painter.drawImage(QPoint(field.center_x_pos()-net.width/2,field.pos_y), *net_image);
 
-    QPainter painter2(this);
-    painter2.setPen(QPen(Qt::blue,5));
-    painter2.drawLine(p2.x(),p2.y(),p2.x(),p2.y()+180);
+    painter.setPen(QPen(Qt::blue,Bar_Left.width));
+
+    painter.drawLine(Bar_Left.pos_x,Bar_Left.pos_y,
+                     Bar_Left.pos_x,Bar_Left.pos_y+Bar_Left.height); //draw left bar
+
+    painter.drawLine(field.width-2*Bar_Right.width,Bar_Right.pos_y,
+                     field.width-2*Bar_Right.width,Bar_Right.pos_y+Bar_Right.height); //draw right bar
 }
 
-void MainWindow::moveBar(int command, int *barLeft, int *barRight){
+void MainWindow::moveBar(int command, Square *barleft, Square *barright, Square *field){
+
+    Square templeft = *barleft;
+    Square tempright = *barright;
+
     switch (command) {
     case P1_RIGHT_DOWN:
-        *barRight = p1.y()-30;
-        p1.setY(*barRight);
+        barright->pos_y = barright->pos_y+barspeed;
         break;
     case P1_RIGHT_UP:
-        *barRight = p1.y()+30;
-        p1.setY(*barRight);
+        barright->pos_y = barright->pos_y-barspeed;
         break;
     case P2_LEFT_DOWN:
-        *barLeft = p2.y()-30;
-        p2.setY(*barLeft);
+        barleft->pos_y = barleft->pos_y+barspeed;
         break;
     case P2_LEFT_UP:
-        *barLeft = p2.y()+30;
-        p2.setY(*barLeft);
+        barleft->pos_y = barleft->pos_y-barspeed;
         break;
     }
+
+    if (barleft->pos_y >= (field->height -barleft->height )
+            || barleft->pos_y <= field->pos_y){
+        *barleft = templeft;
+    }
+    if (barright->pos_y >= (field->height -barright->height )
+            || barright->pos_y <= field->pos_y){
+        *barright = tempright;
+    }
+
     update();
 }

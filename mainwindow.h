@@ -50,16 +50,30 @@ private:
 
     void paintEvent(QPaintEvent *);
 
-    void moveBar(int command, int *barLeft, int *barRight);
-
-    QImage* canvas1;
-    QImage* canvas2;
+    QImage* field_image;
+    QImage* net_image;
     QImage* canvas3;
     QPoint p1;
     QPoint p2;
-    int barLeft, barRight;
     void disconnectSerial(int handler);
     void connectSerial(int *handler, QString port);
+
+    typedef struct Square{
+        int width = 640*2;
+        int height = 480;
+        int pos_x = 0;
+        int pos_y = 0;
+        int center_x_pos() {return (width-pos_x)/2;}
+        int center_y_pos() {return (height-pos_y)/2;}
+    }Square;
+
+    Square field;
+    Square net;
+    Square Bar_Left,Bar_Right;
+
+    void moveBar(int command, Square *barleft, Square *barright, Square *field);
+
+    const int barspeed = 10;
 };
 
 #endif // MAINWINDOW_H
