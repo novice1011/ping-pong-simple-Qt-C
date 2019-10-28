@@ -13,9 +13,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     timer1 = new QTimer(this);
-    timer1->start(10);
+    timer2 = new QTimer(this);
+//    timer1->start(10);
     connect(timer1,SIGNAL(timeout()), this, SLOT(timercallfunction()));
     connect(timer1,SIGNAL(timeout()),this,SLOT(animation_refresh()));
+
+    connect(timer2,SIGNAL(timeout()),this,SLOT(animation_pause()));
 
     net.width = 5;
     net.height = field.width;
@@ -296,4 +299,42 @@ void MainWindow::resetscore(){
     scoreL = 0;
     ui->label_scoreL->setText(QString::number(0));
     ui->label_scoreR->setText(QString::number(0));
+}
+
+void MainWindow::on_pushButton_connect_clicked()
+{
+    port1 = ui->lineEdit->text();
+    connectSerial(&port_handler_left, port1);
+
+    if (port_handler_left>0){
+        ui->pushButton_connect->setText("connected");
+    }
+}
+
+void MainWindow::animation_pause(){
+    if (coundownvalue>0){
+        coundownvalue=coundownvalue-1;
+
+        ui->countdown->setText(QString::number(coundownvalue));
+        timer1->stop();
+    }
+
+    else {
+       timer2->stop();
+       timer1->start(10);
+       ui->countdown->setText("");
+    }
+}
+
+void MainWindow::on_pushButton_startstop_clicked()
+{
+        resetscore();
+        resetballposition(&ball,field);
+        ui->label_ball->setGeometry((int)ball.x,(int)ball.y,30,30);
+
+        checked=0;
+        timer1->stop();
+        coundownvalue = 3;
+        ui->countdown->setText(QString::number(coundownvalue));
+        timer2->start(1000);
 }
