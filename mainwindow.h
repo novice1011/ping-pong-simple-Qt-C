@@ -40,6 +40,11 @@ private slots:
 
     void animation_refresh();
 
+    void on_pushButton_connect_clicked();
+
+    void on_pushButton_startstop_clicked();
+
+    void animation_pause();
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -48,6 +53,7 @@ private:
     Ui::MainWindow *ui;
 
     QTimer *timer1 ;      //object to start and stop timer
+    QTimer *timer2 ;
     QString port1, port2;
     int port_handler_left=0;
     int port_handler_right=0;
@@ -88,6 +94,7 @@ private:
         float y=240;
         float speed = 1;
         float dir_deg = 45;
+        int size = 30;
         float traj_x(){
             return speed*qSin(qDegreesToRadians(dir_deg));
         }
@@ -124,6 +131,9 @@ private:
     int scoreL,scoreR;
     void resetballposition(Ball *b, Square field);
     void resetscore();
+
+    bool checked=1;
+    int coundownvalue=3;
 };
 
 #endif // MAINWINDOW_H
