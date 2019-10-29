@@ -50,6 +50,10 @@ MainWindow::MainWindow(QWidget *parent) :
     resetballposition(&ball,field);
 
     resetscore();
+
+    ui->countdown->setGeometry(field.center_x_pos(), field.pos_y, 80,80);
+    ui->label_scoreL->setGeometry(field.pos_x+field.width/4, field.pos_y, 80,80);
+    ui->label_scoreR->setGeometry(field.pos_x+field.width*3/4, field.pos_y, 80,80);
 }
 
 MainWindow::~MainWindow()

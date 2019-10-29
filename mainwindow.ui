@@ -61,8 +61,8 @@
    <widget class="QLabel" name="label_scoreR">
     <property name="geometry">
      <rect>
-      <x>1250</x>
-      <y>10</y>
+      <x>1010</x>
+      <y>20</y>
       <width>67</width>
       <height>41</height>
      </rect>
@@ -125,11 +125,16 @@
    <widget class="QLabel" name="countdown">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>10</y>
-      <width>67</width>
-      <height>17</height>
+      <x>520</x>
+      <y>0</y>
+      <width>421</width>
+      <height>391</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>80</pointsize>
+     </font>
     </property>
     <property name="text">
      <string/>
