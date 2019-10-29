@@ -94,6 +94,7 @@ private:
         float y=240;
         float speed = 1;
         float dir_deg = 45;
+        int size = 30;
         float traj_x(){
             return speed*qSin(qDegreesToRadians(dir_deg));
         }
